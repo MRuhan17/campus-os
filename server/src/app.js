@@ -35,7 +35,7 @@ const isAllowedOrigin = (origin) => {
     return true;
   }
 
-  return /^https:\/\/campus-os-[a-z0-9-]+\.vercel\.app$/.test(origin);
+  return /^https:\/\/campus-[a-z0-9-]+\.vercel\.app$/.test(origin);
 };
 
 app.use(
