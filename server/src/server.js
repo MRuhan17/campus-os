@@ -11,17 +11,33 @@ dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.CLIENT_URL
+].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  return /^https:\/\/campus-os-[a-z0-9-]+\.vercel\.app$/.test(origin);
+};
+
 connectDB().then(() => {
   const server = createServer(app);
 
-  const allowedOrigins = [
-    "http://localhost:5173",
-    process.env.CLIENT_URL
-  ].filter(Boolean);
-
   const io = new Server(server, {
     cors: {
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       credentials: true
     }
   });
