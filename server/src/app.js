@@ -18,14 +18,63 @@ import certificateRoutes from "./routes/certificateRoutes.js";
 import testRoutes from "./routes/testRoutes.js";
 
 export const app = express();
-app.set("trust proxy", 1);
-app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
-app.use(express.json({ limit: "2mb" }));
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 500 }));
 
-app.get("/api/health", (_req, res) => res.json({ ok: true, service: "campus-event-platform" }));
+app.set("trust proxy", 1);
+
+app.use(helmet());
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.CLIENT_URL
+].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  return /^https:\/\/campus-os-[a-z0-9-]+\.vercel\.app$/.test(origin);
+};
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true
+  })
+);
+
+app.use(express.json({ limit: "2mb" }));
+
+app.use(
+  morgan(
+    process.env.NODE_ENV === "production"
+      ? "combined"
+      : "dev"
+  )
+);
+
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 500
+  })
+);
+
+app.get("/api/health", (_req, res) =>
+  res.json({
+    ok: true,
+    service: "campus-event-platform"
+  })
+);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/profiles", profileRoutes);
 app.use("/api/events", eventRoutes);
@@ -35,7 +84,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/verification", verificationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/interests", interestRoutes);
-app.use("/api/attendance",attendanceRoutes);
+app.use("/api/attendance", attendanceRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/test-email", testRoutes);
 
